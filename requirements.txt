@@ -1,0 +1,8 @@
+fastapi
+pydantic
+python-dotenv
+groq
+uvicorn 
+streamlit  
+requests  
+tenacity>=8.2.0
