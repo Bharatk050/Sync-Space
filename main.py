@@ -102,14 +102,15 @@ def generate_unique_project_name(project_description):
         return fallback_name
 
 # FastAPI endpoints
-API_BREAKDOWN = "http://127.0.0.1:8000/breakdown"
+API_BREAKDOWN = "http://fastapi-backend:8000/breakdown"
 API_ENDPOINTS = {
-    "Requirements_GatheringAnd_Analysis": "http://127.0.0.1:8000/Requirements_GatheringAnd_Analysis/",
-    "Design": "http://127.0.0.1:8000/Design/",
-    "Implementation_Development": "http://127.0.0.1:8000/Implementation_Development/",
-    "Testing_Quality_Assurance": "http://127.0.0.1:8000/Testing_Quality_Assurance/",
-    "Deployment": "http://127.0.0.1:8000/Deployment/",
-    "Maintenance": "http://127.0.0.1:8000/Maintenance/"
+    "Requirements_GatheringAnd_Analysis": "http://fastapi-backend:8000/Requirements_GatheringAnd_Analysis/",
+    "Design": "http://fastapi-backend:8000/Design/",
+    "Implementation_Development": "http://fastapi-backend:8000/Implementation_Development/",
+    "Testing_Quality_Assurance": "http://fastapi-backend:8000/Testing_Quality_Assurance/",
+    "Deployment": "http://fastapi-backend:8000/Deployment/",
+    "Maintenance": "http://fastapi-backend:8000/Maintenance/",
+    "Documentation_And_Setup_Guide": "http://fastapi-backend:8000/Documentation_And_Setup_Guide/"
 }
 
 st.set_page_config(page_title="Project Breakdown", page_icon="🛠️", layout="wide")

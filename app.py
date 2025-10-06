@@ -22,8 +22,8 @@ app = FastAPI()
 # -----------------------------
 # Global Configuration
 # -----------------------------
-DEFAULT_MODEL = "llama-3.3-70b-versatile" 
-BACKUP_MODEL = "deepseek-r1-distill-llama-70b"  
+DEFAULT_MODEL = "llama-3.3-70b-versatile"  # Primary model
+BACKUP_MODEL = "deepseek-r1-distill-llama-70b"             # Fallback model
 
 # -----------------------------
 # Request body formats
