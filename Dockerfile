@@ -2,7 +2,7 @@
 FROM python:3.10-slim
 
 # Set working directory
-WORKDIR /app
+WORKDIR /sync_space
 
 # Copy requirement files first (for caching)
 COPY requirements.txt .
@@ -10,15 +10,16 @@ COPY requirements.txt .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create an output folder and fix permissions
-RUN mkdir -p /app/output \
-    && chmod -R 777 /app/output
+# Create output folder with proper permissions
+RUN mkdir -p /sync_space/output && \
+    chmod -R 777 /sync_space/output && \
+    chown -R appuser:appuser /sync_space/output
 
 # (Optional) Create a non-root user safely
 RUN useradd -m appuser || true
 
 # Set ownership after user creation
-RUN chown -R appuser:appuser /app
+RUN chown -R appuser:appuser /sync_space
 
 # Switch to non-root user
 USER appuser

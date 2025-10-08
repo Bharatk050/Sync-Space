@@ -8,6 +8,31 @@ import json
 from pathlib import Path
 import pandas as pd
 from dotenv import load_dotenv
+import subprocess  # Add this import
+
+def fetch_docker_files(container_name: str, source_path: str, dest_path: str) -> bool:
+    """Fetch files from Docker container to local path"""
+    try:
+        # Create destination directory with proper permissions
+        dest_path = Path(dest_path)
+        dest_path.mkdir(parents=True, exist_ok=True, mode=0o777)
+        
+        # Copy files from container to host
+        cmd = f'docker cp {container_name}:{source_path} "{dest_path}"'
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            # Fix permissions on copied files
+            subprocess.run(f'icacls "{dest_path}" /grant Everyone:F /T', shell=True)
+            st.success("✅ Files fetched successfully from Docker container")
+            return True
+        else:
+            st.error(f"Failed to fetch files: {result.stderr}")
+            return False
+            
+    except Exception as e:
+        st.error(f"Error fetching files from Docker: {str(e)}")
+        return False
 
 # Add Groq client setup
 load_dotenv()
@@ -102,15 +127,15 @@ def generate_unique_project_name(project_description):
         return fallback_name
 
 # FastAPI endpoints
-API_BREAKDOWN = "http://fastapi-backend:8000/breakdown"
+API_BREAKDOWN = "http://backend:8000/breakdown"
 API_ENDPOINTS = {
-    "Requirements_GatheringAnd_Analysis": "http://fastapi-backend:8000/Requirements_GatheringAnd_Analysis/",
-    "Design": "http://fastapi-backend:8000/Design/",
-    "Implementation_Development": "http://fastapi-backend:8000/Implementation_Development/",
-    "Testing_Quality_Assurance": "http://fastapi-backend:8000/Testing_Quality_Assurance/",
-    "Deployment": "http://fastapi-backend:8000/Deployment/",
-    "Maintenance": "http://fastapi-backend:8000/Maintenance/",
-    "Documentation_And_Setup_Guide": "http://fastapi-backend:8000/Documentation_And_Setup_Guide/"
+    "Requirements_GatheringAnd_Analysis": "http://backend:8000/Requirements_GatheringAnd_Analysis/",
+    "Design": "http://backend:8000/Design/",
+    "Implementation_Development": "http://backend:8000/Implementation_Development/",
+    "Testing_Quality_Assurance": "http://backend:8000/Testing_Quality_Assurance/",
+    "Deployment": "http://backend:8000/Deployment/",
+    "Maintenance": "http://backend:8000/Maintenance/",
+    "Documentation_And_Setup_Guide": "http://backend:8000/Documentation_And_Setup_Guide/"
 }
 
 st.set_page_config(page_title="Project Breakdown", page_icon="🛠️", layout="wide")
@@ -183,11 +208,19 @@ def display_generated_files(exec_data):
     
     st.markdown("### 📂 Generated Files")
     
-    project_folder = Path(exec_data.get('project_folder', ''))
-    if not project_folder.exists():
-        st.error("Project folder not found")
-        return
+    # Handle Docker container paths
+    docker_project_folder = Path("/sync_space/output") / exec_data.get('project_folder', '').split('/')[-1]
+    local_project_folder = Path(exec_data.get('project_folder', ''))
     
+    # Try Docker path first, then local path
+    if docker_project_folder.exists():
+        project_folder = docker_project_folder
+    elif local_project_folder.exists():
+        project_folder = local_project_folder
+    else:
+        st.error("Project folder not found in either Docker container or local path")
+        return
+
     # File type configurations
     FILE_TYPES = {
         # Documentation
@@ -321,6 +354,15 @@ if st.session_state.subtasks:
 
             # Execute subtask
             endpoint_url = API_ENDPOINTS.get(s["title"], None)
+            
+            # Add this before the endpoint check
+            st.write(f"Debug - Task Title: '{s['title']}'")
+            if endpoint_url:
+                st.write(f"Debug - Endpoint URL: {endpoint_url}")
+            else:
+                st.write("Debug - No matching endpoint found")
+                st.write(f"Available endpoints: {list(API_ENDPOINTS.keys())}")
+            
             if endpoint_url:
                 if st.button(f"⚡ Build Subtask: {s['title']}", key=f"build_{s['id']}"):
                     with st.spinner(f"Building {s['title']}..."):
@@ -350,11 +392,45 @@ if st.session_state.subtasks:
                             if exec_response.status_code == 200:
                                 exec_data = exec_response.json()
                                 st.session_state.exec_results[s['id']] = exec_data
-                                st.success(f"✅ Subtask completed successfully!")
-                                display_generated_files(exec_data)
+                                
+                                # Fetch files from Docker container
+                                docker_path = f"/sync_space/output/{st.session_state.project_name}"
+                                local_path = f"./output/{st.session_state.project_name}"
+                                
+                                if fetch_docker_files("fastapi-backend", docker_path, local_path):
+                                    # Update exec_data with local path
+                                    exec_data['project_folder'] = local_path
+                                    st.success(f"✅ Subtask completed successfully!")
+                                    display_generated_files(exec_data)
+                                else:
+                                    st.warning("⚠️ Subtask completed but files could not be fetched")
                             else:
                                 st.error(f"Build failed: {exec_response.text}")
                         except Exception as e:
                             st.error(f"Failed to execute subtask: {e}")
             else:
                 st.warning("No API endpoint configured for this subtask.")
+
+def fetch_docker_files(container_name: str, source_path: str, dest_path: str) -> bool:
+    """Fetch files from Docker container to local path"""
+    try:
+        # Create destination directory with proper permissions
+        dest_path = Path(dest_path)
+        dest_path.mkdir(parents=True, exist_ok=True, mode=0o777)
+        
+        # Copy files from container to host
+        cmd = f'docker cp {container_name}:{source_path} "{dest_path}"'
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            # Fix permissions on copied files
+            subprocess.run(f'icacls "{dest_path}" /grant Everyone:F /T', shell=True)
+            st.success("✅ Files fetched successfully from Docker container")
+            return True
+        else:
+            st.error(f"Failed to fetch files: {result.stderr}")
+            return False
+            
+    except Exception as e:
+        st.error(f"Error fetching files from Docker: {str(e)}")
+        return False

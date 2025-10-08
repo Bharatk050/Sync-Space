@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from groq import Groq  # official Groq client
 from dotenv import load_dotenv
@@ -9,6 +9,7 @@ from pathlib import Path
 from datetime import datetime
 from time import sleep
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception
+from fastapi.middleware.cors import CORSMiddleware
 
 # -----------------------------
 # Load API key
@@ -17,7 +18,16 @@ load_dotenv()
 groq_api_key = os.getenv("GROQ_API_KEY")
 
 client = Groq(api_key=groq_api_key)
-app = FastAPI()
+app = FastAPI(title="Syncro API", version="1.0.0")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # -----------------------------
 # Global Configuration
@@ -43,29 +53,64 @@ class SubtaskRequest(BaseModel):
 # JSON Parser
 # -----------------------------
 def parse_llm_json(response_text):
-    """Extract JSON from LLM response safely. Returns a list of dicts."""
+    """Extract JSON from LLM response with improved error handling"""
     try:
-        match = re.search(r'\[\s*\{.*\}\s*\]', response_text, re.DOTALL)
+        # First attempt: Try to find a complete JSON array
+        match = re.search(r'\[\s*\{.*?\}\s*\]', response_text, re.DOTALL)
         if match:
             json_text = match.group(0)
-            subtasks = json.loads(json_text)
-        else:
-            subtasks = [{
-                "id": 0,
-                "title": "Parsing Error",
-                "description": response_text,
-                "how_to_build": "",
-                "Agent_Name": "System"
-            }]
-    except Exception as e:
-        subtasks = [{
-            "id": 0,
-            "title": "Parsing Error",
-            "description": str(e),
-            "how_to_build": response_text,
+            return json.loads(json_text)
+            
+        # Second attempt: Try to extract individual JSON objects
+        objects = re.findall(r'\{\s*"id".*?\}(?=\s*[,\]])', response_text, re.DOTALL)
+        if objects:
+            json_array = f"[{','.join(objects)}]"
+            return json.loads(json_array)
+            
+        # Third attempt: Basic structure extraction
+        subtasks = []
+        matches = re.finditer(r'"id"\s*:\s*"(\d+)".*?"title"\s*:\s*"([^"]+)".*?"description"\s*:\s*"([^"]+)".*?"Agent_Name"\s*:\s*"([^"]+)"', response_text, re.DOTALL)
+        
+        for match in matches:
+            subtask = {
+                "id": match.group(1),
+                "title": match.group(2),
+                "description": match.group(3),
+                "how_to_build": "See detailed implementation guide",
+                "Agent_Name": match.group(4)
+            }
+            subtasks.append(subtask)
+            
+        if subtasks:
+            return subtasks
+            
+        # Fallback: Return error task
+        return [{
+            "id": "error_1",
+            "title": "Requirements_GatheringAnd_Analysis",
+            "description": "Error parsing LLM response. Please try again.",
+            "how_to_build": response_text[:200] + "...",
             "Agent_Name": "System"
         }]
-    return subtasks
+        
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {str(e)}")
+        return [{
+            "id": "error_2",
+            "title": "Requirements_GatheringAnd_Analysis",
+            "description": f"JSON parsing error: {str(e)}",
+            "how_to_build": "Please try again",
+            "Agent_Name": "System"
+        }]
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return [{
+            "id": "error_3",
+            "title": "Requirements_GatheringAnd_Analysis",
+            "description": f"Unexpected error: {str(e)}",
+            "how_to_build": "Please try again",
+            "Agent_Name": "System"
+        }]
 
 def extract_json_array(text: str) -> list:
     """Extract JSON array from text with improved error handling"""
@@ -461,6 +506,23 @@ def Deployment(request: SubtaskRequest):
 @app.post("/Maintenance/")
 def Maintenance(request: SubtaskRequest):
     return execute_subtask(request)
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {"message": "Welcome to Syncro API"}
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    try:
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0.0"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 def sanitize_project_name(name: str) -> str:
     """Sanitize the project name to be file system friendly"""
