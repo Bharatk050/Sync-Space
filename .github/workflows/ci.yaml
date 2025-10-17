@@ -1,19 +1,24 @@
-name: Build and Push Docker Image (ubuntu)
+name: Build and Push Docker Image
 
+# Trigger on pushes to main (adjust branch as needed) and on PRs
 on:
   push:
     branches: [ main ]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build-and-push:
+    name: Build and push Docker image
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up QEMU (for multi-arch builds)
+      - name: Set up QEMU (for multi-arch build support)
         uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
@@ -26,12 +31,16 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push image
+      - name: Build and push Docker image (multi-arch)
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
+          # Replace 'myapp' with your image name / repo on Docker Hub
           tags: >
             ${{ secrets.DOCKER_USERNAME }}/myapp:latest,
             ${{ secrets.DOCKER_USERNAME }}/myapp:${{ github.sha }}
           platforms: linux/amd64,linux/arm64
+          # Optional: enable build cache on registry (comment out if not desired)
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/myapp:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/myapp:buildcache,mode=max

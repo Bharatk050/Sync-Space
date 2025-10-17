@@ -1,35 +1,36 @@
 # Use official Python image
 FROM python:3.10-slim
 
-# Set working directory
+# keep Python output unbuffered (helpful for logs)
+ENV PYTHONUNBUFFERED=1
+
+# create a non-root user and group (run as root by default in build)
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# set working directory
 WORKDIR /sync_space
 
-# Copy requirement files first (for caching)
+# copy only requirements first to use Docker layer caching
 COPY requirements.txt .
 
-# Install dependencies
+# install dependencies as root (so caching works)
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create output folder with proper permissions
-RUN mkdir -p /sync_space/output && \
-    chmod -R 777 /sync_space/output && \
-    chown -R appuser:appuser /sync_space/output
+# create output dir and set permissions (do this while still root)
+RUN mkdir -p /sync_space/output \
+    && chmod 0777 /sync_space/output \
+    && chown -R appuser:appuser /sync_space/output
 
-# (Optional) Create a non-root user safely
-RUN useradd -m appuser || true
+# copy the rest of the repo and set ownership to appuser
+# --chown avoids an extra chown layer and ensures files are owned correctly
+COPY --chown=appuser:appuser . .
 
-# Set ownership after user creation
-RUN chown -R appuser:appuser /sync_space
-
-# Switch to non-root user
+# switch to non-root user for runtime
 USER appuser
 
-# Copy the rest of the code
-COPY . .
-
-# Expose ports for both FastAPI and Streamlit
+# expose ports your app uses (adjust if needed)
 EXPOSE 8000
 EXPOSE 8501
 
-# Default command (can be overridden by docker-compose)
+# default command (adjust as needed; example leaves you in bash)
 CMD ["bash"]
