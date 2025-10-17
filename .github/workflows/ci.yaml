@@ -38,9 +38,9 @@ jobs:
           push: true
           # Replace 'myapp' with your image name / repo on Docker Hub
           tags: >
-            ${{ secrets.DOCKER_USERNAME }}/myapp:latest,
-            ${{ secrets.DOCKER_USERNAME }}/myapp:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/syncro:latest,
+            ${{ secrets.DOCKER_USERNAME }}/syncro:${{ github.sha }}
           platforms: linux/amd64,linux/arm64
           # Optional: enable build cache on registry (comment out if not desired)
-          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/myapp:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/myapp:buildcache,mode=max
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/syncro:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/syncro:buildcache,mode=max
