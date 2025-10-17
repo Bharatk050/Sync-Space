@@ -1,35 +1,37 @@
-name: ci
+name: Build and Push Docker Image (ubuntu)
 
-# Runs this workflow when code is pushed to main or a PR is created
 on:
   push:
     branches: [ main ]
   pull_request:
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}   # runs on multiple OS options
-    strategy:
-      matrix:
-        os: ubuntu-latest
+  build-and-push:
+    runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository code
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # Step 2: Set up Docker (Docker is already available on runners)
-      - name: Show Docker version
-        run: docker version
+      - name: Set up QEMU (for multi-arch builds)
+        uses: docker/setup-qemu-action@v2
 
-      # Step 3: Build Docker image
-      - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/myapp:latest .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      # Step 4: Log in to Docker Hub
       - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        uses: docker/login-action@v2
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Step 5: Push the image to Docker Hub
-      - name: Push Docker image
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/myapp:latest
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: >
+            ${{ secrets.DOCKER_USERNAME }}/myapp:latest,
+            ${{ secrets.DOCKER_USERNAME }}/myapp:${{ github.sha }}
+          platforms: linux/amd64,linux/arm64
