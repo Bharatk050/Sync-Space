@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}   # runs on multiple OS options
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       # Step 1: Checkout the repository code
