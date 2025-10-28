@@ -28,11 +28,3 @@ services:
     depends_on:
       - backend
     restart: always
-
-volumes:
-  shared_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./output

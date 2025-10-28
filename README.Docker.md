@@ -1,9 +1,18 @@
 ### Building and running your application
 
-When you're ready, start your application by running:
-`docker compose up --build`.
+Before starting, ensure you have a `.env` file with your Groq API key:
+```
+GROQ_API_KEY=your_groq_api_key_here
+```
 
-Your application will be available at http://localhost:8000.
+When you're ready, start your application by running:
+```bash
+docker compose up --build
+```
+
+Your application consists of two services:
+- **Backend API**: Available at http://localhost:8000
+- **Frontend UI**: Available at http://localhost:8501 (Streamlit)
 
 ### Deploying your application to the cloud
 
