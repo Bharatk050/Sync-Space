@@ -1,0 +1,13 @@
+@startuml
+participant Frontend as "Frontend"
+participant Backend as "Backend"
+participant Database as "Database"
+participant API_Gateway as "API Gateway"
+
+Frontend->>API_Gateway: API Request
+API_Gateway->>Backend: API Request
+Backend->>Database: Database Query
+Database->>Backend: Database Response
+Backend->>API_Gateway: API Response
+API_Gateway->>Frontend: API Response
+@enduml

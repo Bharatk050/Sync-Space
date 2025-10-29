@@ -1,0 +1,9 @@
+# Generated configuration
+# Date: 2025-10-28 21:55:56
+
+---
+api:
+  endpoint: /hello
+  method: GET
+  response: "hello world"
+  status_code: 200

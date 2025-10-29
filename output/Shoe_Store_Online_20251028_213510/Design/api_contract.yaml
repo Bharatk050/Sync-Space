@@ -1,0 +1,25 @@
+# Generated configuration
+# Date: 2025-10-28 21:35:59
+
+api:
+  endpoints:
+    - name: get_products
+      method: GET
+      path: /api/products
+      description: Retrieves a list of all products
+    - name: get_product
+      method: GET
+      path: /api/products/{id}
+      description: Retrieves a single product by ID
+    - name: create_order
+      method: POST
+      path: /api/orders
+      description: Creates a new order
+    - name: get_orders
+      method: GET
+      path: /api/orders
+      description: Retrieves a list of all orders for the current customer
+    - name: get_customer
+      method: GET
+      path: /api/customers
+      description: Retrieves information about the current customer

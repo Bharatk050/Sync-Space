@@ -1,0 +1,13 @@
+# Generated configuration
+# Date: 2025-10-28 21:56:07
+
+# docker-compose.yml
+version: "3"
+services:
+  hello-world:
+    build: .
+    ports:
+      - "80:80"
+    restart: always
+    environment:
+      - LOG_LEVEL=INFO

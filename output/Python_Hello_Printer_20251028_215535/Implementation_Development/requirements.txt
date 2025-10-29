@@ -1,0 +1,3 @@
+# requirements.txt
+# This file lists the dependencies required by the project.
+# Since the project does not require any external libraries or dependencies, this file is empty.

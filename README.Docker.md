@@ -14,6 +14,24 @@ Your application consists of two services:
 - **Backend API**: Available at http://localhost:8000
 - **Frontend UI**: Available at http://localhost:8501 (Streamlit)
 
+### File Storage
+
+Generated project files are automatically stored in the `./output` directory on your host machine. This directory is mounted to `/sync_space/output` inside both containers, ensuring:
+- Files persist even if containers are stopped or removed
+- Files are accessible from both frontend and backend services
+- You can access generated files directly from your local filesystem
+
+The file structure will look like:
+```
+./output/
+  └── ProjectName_TIMESTAMP/
+      ├── Requirements_GatheringAnd_Analysis/
+      │   └── generated files...
+      ├── Design/
+      │   └── generated files...
+      └── ... other stages
+```
+
 ### Deploying your application to the cloud
 
 First, build your image, e.g.: `docker build -t myapp .`.

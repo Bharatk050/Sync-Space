@@ -1,0 +1,11 @@
+# Generated configuration
+# Date: 2025-10-28 21:56:42
+
+global:
+  scrape_interval: 10s
+
+scrape_configs:
+  - job_name: 'hello-world'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['localhost:80']

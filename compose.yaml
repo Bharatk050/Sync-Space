@@ -10,7 +10,6 @@ services:
       - .env
     volumes:
       - ./output:/sync_space/output
-    user: "${UID:-1000}:${GID:-1000}"
     restart: always
 
   frontend:
@@ -24,7 +23,6 @@ services:
       - .env
     volumes:
       - ./output:/sync_space/output
-    user: "${UID:-1000}:${GID:-1000}"
     depends_on:
       - backend
     restart: always

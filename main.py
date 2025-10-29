@@ -7,31 +7,10 @@ import re
 import json
 from pathlib import Path
 from dotenv import load_dotenv
-import subprocess
 
-def fetch_docker_files(container_name: str, source_path: str, dest_path: str) -> bool:
-    """Fetch files from Docker container to local path"""
-    try:
-        # Create destination directory with proper permissions
-        dest_path = Path(dest_path)
-        dest_path.mkdir(parents=True, exist_ok=True, mode=0o777)
-        
-        # Copy files from container to host
-        cmd = f'docker cp {container_name}:{source_path} "{dest_path}"'
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        
-        if result.returncode == 0:
-            # Fix permissions on copied files
-            subprocess.run(f'icacls "{dest_path}" /grant Everyone:F /T', shell=True)
-            st.success("✅ Files fetched successfully from Docker container")
-            return True
-        else:
-            st.error(f"Failed to fetch files: {result.stderr}")
-            return False
-            
-    except Exception as e:
-        st.error(f"Error fetching files from Docker: {str(e)}")
-        return False
+# Output directory configuration
+OUTPUT_BASE_DIR = Path("/sync_space/output")
+OUTPUT_BASE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Add Groq client setup
 load_dotenv()
@@ -60,14 +39,14 @@ def sanitize_project_name(name):
     
     # Ensure the name isn't empty after sanitization
     if not sanitized:
-        return f"Project_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        return "Unnamed_Project"
         
     return sanitized
 
 def generate_unique_project_name(project_description):
     """Generate a unique project name with better error handling and file saving"""
     if not client:
-        return f"Project_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        return "Unnamed_Project"
     
     prompt = f"""Given this project description: '{project_description}'
     Generate a unique, memorable, and professional project name that is:
@@ -88,15 +67,20 @@ def generate_unique_project_name(project_description):
         
         generated_name = chat_completion.choices[0].message.content.strip()
         sanitized_name = sanitize_project_name(generated_name)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        unique_name = f"{sanitized_name}_{timestamp}"
+        
+        # Create unique name by checking if directory exists
+        unique_name = sanitized_name
+        counter = 2
+        while (OUTPUT_BASE_DIR / unique_name).exists():
+            unique_name = f"{sanitized_name}_v{counter}"
+            counter += 1
         
         # Ensure the name isn't too long for file systems
         if len(unique_name) > 240:
-            unique_name = f"{unique_name[:230]}_{timestamp}"
+            unique_name = unique_name[:240]
         
-        # Create project directory
-        project_dir = Path(unique_name)
+        # Create project directory in the output directory
+        project_dir = OUTPUT_BASE_DIR / unique_name
         project_dir.mkdir(parents=True, exist_ok=True)
         
         # Save project info
@@ -121,8 +105,13 @@ def generate_unique_project_name(project_description):
         return unique_name
     except Exception as e:
         st.warning(f"Failed to generate name using Groq: {str(e)}")
-        fallback_name = f"Project_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        Path(fallback_name).mkdir(parents=True, exist_ok=True)
+        fallback_name = "Unnamed_Project"
+        counter = 2
+        while (OUTPUT_BASE_DIR / fallback_name).exists():
+            fallback_name = f"Unnamed_Project_v{counter}"
+            counter += 1
+        fallback_dir = OUTPUT_BASE_DIR / fallback_name
+        fallback_dir.mkdir(parents=True, exist_ok=True)
         return fallback_name
 
 # FastAPI endpoints
@@ -133,7 +122,8 @@ API_ENDPOINTS = {
     "Implementation_Development": "http://backend:8000/Implementation_Development/",
     "Testing_Quality_Assurance": "http://backend:8000/Testing_Quality_Assurance/",
     "Deployment": "http://backend:8000/Deployment/",
-    "Maintenance": "http://backend:8000/Maintenance/"
+    "Maintenance": "http://backend:8000/Maintenance/",
+    "Execution_And_Startup": "http://backend:8000/Execution_And_Startup/"
 }
 
 st.set_page_config(page_title="Project Breakdown", page_icon="🛠️", layout="wide")
@@ -206,18 +196,25 @@ def display_generated_files(exec_data):
     
     st.markdown("### 📂 Generated Files")
     
-    # Handle Docker container paths
-    docker_project_folder = Path("/sync_space/output") / exec_data.get('project_folder', '').split('/')[-1]
-    local_project_folder = Path(exec_data.get('project_folder', ''))
-    
-    # Try Docker path first, then local path
-    if docker_project_folder.exists():
-        project_folder = docker_project_folder
-    elif local_project_folder.exists():
-        project_folder = local_project_folder
-    else:
-        st.error("Project folder not found in either Docker container or local path")
+    # Get project folder from exec_data
+    project_folder_str = exec_data.get('project_folder', '')
+    if not project_folder_str:
+        st.error("No project folder specified")
         return
+    
+    # Handle path based on whether we're in Docker or local
+    project_folder = Path(project_folder_str)
+    
+    # If path doesn't exist as-is, try relative to /sync_space/output (Docker mount)
+    if not project_folder.exists():
+        # Try docker path
+        docker_path = Path("/sync_space/output") / project_folder_str.split('/')[-1]
+        if docker_path.exists():
+            project_folder = docker_path
+        else:
+            st.error(f"Project folder not found: {project_folder_str}")
+            st.info(f"Tried paths: {project_folder}, {docker_path}")
+            return
 
     # File type configurations
     FILE_TYPES = {
@@ -258,20 +255,39 @@ def display_generated_files(exec_data):
         '.sh': {'icon': '⚡', 'display': 'code', 'mime': 'text/x-sh'},
         '.bat': {'icon': '⚡', 'display': 'code', 'mime': 'text/plain'},
         
+        # Startup Scripts
+        'start.sh': {'icon': '🚀', 'display': 'code', 'mime': 'text/x-sh'},
+        'start.bat': {'icon': '🚀', 'display': 'code', 'mime': 'text/plain'},
+        'run.py': {'icon': '🏃', 'display': 'code', 'mime': 'text/x-python'},
+        'setup_env.sh': {'icon': '⚙️', 'display': 'code', 'mime': 'text/x-sh'},
+        
         # Monitoring
         '.log': {'icon': '📝', 'display': 'text', 'mime': 'text/plain'},
     }
     
     # Group files by type
     files_by_type = {}
-    for file_path in exec_data.get('files_created', []):
+    files_created = exec_data.get('files_created', [])
+    
+    if not files_created:
+        st.warning("No files were created for this task.")
+        return
+    
+    st.info(f"Found {len(files_created)} file(s) to display")
+    
+    for file_path in files_created:
         file = Path(file_path)
         if not file.exists():
+            st.warning(f"File not found: {file_path}")
             continue
             
         file_type = file.suffix.lower()
         if '_test' in file.name:
             type_key = 'Tests'
+        elif file.name in ['start.sh', 'start.bat', 'run.py', 'setup_env.sh', 'setup_env.bat']:
+            type_key = 'Startup Scripts'
+        elif file.name in ['README_RUN.md', 'QUICK_START.md', 'HOW_TO_RUN.md']:
+            type_key = '🚀 How To Run'
         elif file.name == 'Dockerfile':
             type_key = 'Deployment'
         elif file_type in ['.yml', '.yaml', '.json', '.env', '.conf']:
@@ -330,6 +346,12 @@ def display_generated_files(exec_data):
                     
                 except Exception as e:
                     st.error(f"Error displaying file {file.name}: {str(e)}")
+    
+    # Display summary
+    total_files = sum(len(files) for files in files_by_type.values())
+    if total_files > 0:
+        st.success(f"✅ Successfully displayed {total_files} file(s) in {len(files_by_type)} categories")
+        st.info(f"📁 Files are stored in: `{project_folder}`")
 
 # --------------------------
 # Show Subtasks
@@ -352,6 +374,23 @@ if st.session_state.subtasks:
 
             # Execute subtask
             endpoint_url = API_ENDPOINTS.get(s["title"], None)
+            
+            # Show stage dependencies
+            stage_order = [
+                "Requirements_GatheringAnd_Analysis",
+                "Design",
+                "Implementation_Development",
+                "Testing_Quality_Assurance",
+                "Deployment",
+                "Maintenance",
+                "Execution_And_Startup"
+            ]
+            
+            if s["title"] in stage_order:
+                stage_index = stage_order.index(s["title"])
+                if stage_index > 0:
+                    previous_stages = stage_order[:stage_index]
+                    st.info(f"ℹ️ This stage will build upon: {', '.join(previous_stages)}")
             
             if endpoint_url:
                 if st.button(f"⚡ Build Subtask: {s['title']}", key=f"build_{s['id']}"):
@@ -383,17 +422,19 @@ if st.session_state.subtasks:
                                 exec_data = exec_response.json()
                                 st.session_state.exec_results[s['id']] = exec_data
                                 
-                                # Fetch files from Docker container
-                                docker_path = f"/sync_space/output/{st.session_state.project_name}"
-                                local_path = f"./output/{st.session_state.project_name}"
+                                # Files are already accessible via shared volume mount
+                                st.success(f"✅ Subtask completed successfully!")
                                 
-                                if fetch_docker_files("fastapi-backend", docker_path, local_path):
-                                    # Update exec_data with local path
-                                    exec_data['project_folder'] = local_path
-                                    st.success(f"✅ Subtask completed successfully!")
-                                    display_generated_files(exec_data)
-                                else:
-                                    st.warning("⚠️ Subtask completed but files could not be fetched")
+                                # Show information about stage dependencies
+                                if 'previous_files_referenced' in exec_data and exec_data['previous_files_referenced']:
+                                    with st.expander("🔗 Previous Stage Files Used", expanded=False):
+                                        st.markdown("**This stage built upon the following files from previous stages:**")
+                                        for ref_file in exec_data['previous_files_referenced']:
+                                            st.markdown(f"- `{ref_file}`")
+                                        st.caption(f"Total: {len(exec_data['previous_files_referenced'])} files referenced")
+                                
+                                # Display the generated files
+                                display_generated_files(exec_data)
                             else:
                                 st.error(f"Build failed: {exec_response.text}")
                         except Exception as e:

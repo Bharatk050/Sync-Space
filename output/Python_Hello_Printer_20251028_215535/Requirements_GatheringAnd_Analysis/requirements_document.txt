@@ -1,0 +1,18 @@
+# Requirements Document
+## Introduction
+This document outlines the requirements for the Python_Hello_Printer_20251028_215535 project.
+
+## Functional Requirements
+* The program must print "hello world" to the console.
+* The program must be written in Python 3.x.
+* The program must use the built-in `print()` function to print "hello world" to the console.
+
+## Non-Functional Requirements
+* The program must be production-ready, maintainable, and secure.
+* The program must not require any external libraries or dependencies.
+
+## Prerequisites
+* Install Python and a text editor as prerequisites.
+
+## Validation Steps
+* Verify that the output is indeed "hello world".

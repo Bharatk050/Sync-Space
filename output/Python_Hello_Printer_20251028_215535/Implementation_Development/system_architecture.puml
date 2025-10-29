@@ -1,0 +1,7 @@
+@startuml
+component "hello-world" as "Hello World Service"
+component "docker" as "Docker Container"
+
+hello-world --* docker
+docker --* "Host Machine"
+@enduml

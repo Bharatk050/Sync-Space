@@ -1,0 +1,10 @@
+@startuml
+participant User as "User Request"
+participant Docker as "Docker Container (hello-world)"
+participant Python as "Python Application (hello_world.py)"
+participant Console as "Console Output"
+
+User->>Docker: Initiate Request
+Docker->>Python: Run Application
+Python->>Console: Print "hello world"
+@enduml

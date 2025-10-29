@@ -1,0 +1,50 @@
+# Generated configuration
+# Date: 2025-10-28 21:47:48
+
+swagger: "2.0"
+info:
+  title: Shoe Store API
+  description: API for Shoe Store application
+  version: 1.0.0
+host: localhost:5000
+basePath: /api
+schemes:
+  - http
+paths:
+  /products:
+    get:
+      summary: Retrieve a list of products
+      responses:
+        200:
+          description: List of products
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Product'
+  /products/{id}:
+    get:
+      summary: Retrieve a product by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Product
+          schema:
+            $ref: '#/definitions/Product'
+definitions:
+  Product:
+    type: object
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      description:
+        type: string
+      price:
+        type: number
+      image:
+        type: string

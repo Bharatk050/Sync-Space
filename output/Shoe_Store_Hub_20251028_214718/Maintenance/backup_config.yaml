@@ -1,0 +1,11 @@
+# Generated configuration
+# Date: 2025-10-28 21:49:35
+
+# Backup configuration
+backup:
+  directory: "/var/backups/shoe_store_hub"
+  database:
+    user: "root"
+    password: "password"
+    name: "shoe_store_hub"
+  schedule: "0 2 * * *"

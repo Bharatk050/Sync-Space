@@ -1,0 +1,5 @@
+# Generated on: 2025-10-28 21:55:46
+
+# requirements.txt
+python==3.9
+docker==20.10.7

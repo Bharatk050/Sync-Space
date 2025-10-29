@@ -1,0 +1,15 @@
+@startuml
+component Web Server as "Web Server"
+component Application Server as "Application Server"
+component Database Server as "Database Server"
+component Payment Gateway as "Payment Gateway"
+
+Web Server --> Application Server : HTTP Request
+Application Server --> Database Server : Database Query
+Database Server --> Application Server : Data
+Application Server --> Payment Gateway : Payment Request
+Payment Gateway --> Application Server : Payment Response
+Application Server --> Web Server : HTTP Response
+Web Server --> Client : HTTP Response
+
+@enduml

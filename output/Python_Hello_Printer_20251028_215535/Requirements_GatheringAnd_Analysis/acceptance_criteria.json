@@ -1,0 +1,14 @@
+{
+    "criteria": [
+        {
+            "id": 1,
+            "description": "The program prints 'hello world' to the console.",
+            "expected_result": "hello world"
+        },
+        {
+            "id": 2,
+            "description": "The program is production-ready, maintainable, and secure.",
+            "expected_result": "True"
+        }
+    ]
+}
