@@ -253,14 +253,6 @@ Syncro/
 2. Check your Groq API quota and rate limits
 3. Review the backend logs for detailed error messages
 
-## License
-
-[Your License Here]
-
-## Contributing
-
-[Contributing Guidelines Here]
-
 ## Support
 
 For issues and questions, please open an issue on the GitHub repository.
